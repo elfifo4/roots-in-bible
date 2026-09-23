@@ -81,6 +81,22 @@ What it does:
    style: `הוספת שורש ס-פ-ק` (for several roots: `הוספת שורשים ס-פ-ק, ש-פ-ק`). Stage only the
    root files and the skill. `.idea/` changes are never part of it.
 
+## Auditing existing files
+
+`scripts/audit_roots.py --out <dir>` regenerates every committed root (or `--only X`) and compares
+it to the file. It is read-only. It caches Dicta responses in `<dir>/dicta`, so a re-run is fast,
+and writes `<dir>/report.json` with a category per root: `same`, `index_fix`, `verses_diff`,
+`unresolved`, or `error`.
+
+**Never rewrite verse sets from an audit.** Many file names are not the query that built them.
+`אנש` holds 3,025 occurrences, and Dicta returns 76 for "אנש". `הימ`, `אבה`, `שׂה` and `שכל` were
+built the same way, with a different query or deliberate curation. Only these changes are safe:
+a verse that is in both versions, has the same number of words, and where each old index points
+at a neighboring word (≤3 away) that is not one of the Dicta hit words. Then apply only those
+index changes and keep everything else in the file. The first full audit (2026-09-23) fixed
+98 such verses in 72 roots. They came from ketiv/qere, Ha'azinu's layout, the Ten Commandments'
+numbering, and ketiv joined by a makaf (`אֶת־החצי (הַחִצִּים)`).
+
 ## Validation reference
 
 Regenerating existing roots with this script (אמר, דבר, ספר, שפט: about 9,600 hits) matched the

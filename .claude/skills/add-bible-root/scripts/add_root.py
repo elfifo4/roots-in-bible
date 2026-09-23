@@ -106,6 +106,8 @@ def split_verse(line: str) -> list[Word]:
     - a paseq (׀) standing alone belongs to the previous word
     - ketiv/qere "(כתיב) [קְרִי]": only the qere is a word (the ketiv is dropped, brackets removed)
     """
+    # Dicta sometimes highlights only the ketiv: "*(אלו)* [אֵלָיו]" → move the highlight to the qere
+    line = re.sub(r"\*\([^)]*\)\*(\s*)\[([^\]]*)\]", r"\1*[\2]*", line)
     line = re.sub(r"\([^)]*\)", "", line).replace("[", "").replace("]", "")
     words: list[Word] = []
     cur = Word()
@@ -171,15 +173,16 @@ def parse(text: str) -> list[Hit]:
     while i < len(lines):
         m = REF_RE.match(lines[i])
         if not m:
-            raise SystemExit(f"Unexpected line in Dicta output: {lines[i]!r}")
+            raise ValueError(f"Unexpected line in Dicta output: {lines[i]!r}")
         book = m["book"]
         if book not in BOOKS:
-            raise SystemExit(f"Unknown book name from Dicta: {book!r}")
+            raise ValueError(f"Unknown book name from Dicta: {book!r}")
         verse_line = lines[i + 1]
         words = split_verse(verse_line)
         found = [(n, w) for n, w in enumerate(words, 1) if w.hit]
-        if not found:
-            raise SystemExit(f"No highlighted word in {lines[i]}: {verse_line}")
+        if not found:  # e.g. only a ketiv-without-qere was highlighted: not a word in the app
+            print(f"warning: skipped, no countable highlighted word in {lines[i]}: {verse_line}",
+                  file=sys.stderr)
         for n, w in found:
             hits.append(Hit(BOOKS.index(book), gematria(m["chapter"]), gematria(m["verse"]), n,
                             w.text, verse_line.replace("*", "")))
@@ -255,8 +258,8 @@ class AppText:
                 cur, expected = expected, expected + 1
                 verses[cur] = []
                 continue
-            if not cur or tok == "\u05c6" or (letters(tok) and not marked):
-                continue  # before verse 1, nun hafucha, or an unpointed ketiv (the app shows the qere)
+            if not cur or tok == "\u05c6":
+                continue  # before verse 1, or nun hafucha
             verses[cur].append(tok.replace("(", "").replace(")", ""))
         return {v: AppText._words(" ".join(t)) for v, t in verses.items()}
 
@@ -266,6 +269,8 @@ class AppText:
         for w in re.split(r"[\s\u05be]+", verse):
             if not w:
                 continue
+            if letters(w) and not any(is_mark(ch) for ch in w):
+                continue  # unpointed ketiv, also after a makaf ("אֶת־החצי (הַחִצִּים)"): the app counts the qere
             if not letters(w) and out:  # paseq etc. belongs to the previous word
                 out[-1] += w
             else:
@@ -314,7 +319,9 @@ def align(h: Hit, app: AppText):
 def build(hits: list[Hit], root: str) -> dict:
     by_verse: dict[tuple[int, int, int], list[int]] = {}
     for h in sorted(hits, key=lambda h: (h.book, h.chapter, h.verse, h.word_index)):
-        by_verse.setdefault((h.book, h.chapter, h.verse), []).append(h.word_index)
+        words = by_verse.setdefault((h.book, h.chapter, h.verse), [])
+        if h.word_index not in words:  # two Dicta hits can land on the same app word
+            words.append(h.word_index)
     return {
         "total": sum(len(w) for w in by_verse.values()),
         "root": root,
