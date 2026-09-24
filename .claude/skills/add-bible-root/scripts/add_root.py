@@ -6,8 +6,8 @@ Fetches the Dicta search results (with nikud, so ס / שׂ / שׁ can be told ap
 1-based word index of every highlighted word exactly the way the Bible Contest app splits a verse
 (whitespace + makaf split, paseq attached to the previous word, Dicta's censored divine names kept
 as one word), classifies each hit to one of the requested roots by the letters it is written with,
-and writes formatted/<letter>/<root>.json + minified/<letter>/<root>.json (UTF-16 BE with BOM, no
-trailing newline — the format of the existing files).
+and writes formatted/<letter>/<root>.json + minified/<letter>/<root>.json (UTF-16 BE with BOM, ending
+with a newline — the format of the existing files).
 
 Dry run by default: prints a review table. Pass --write to create the files.
 
@@ -333,7 +333,7 @@ def build(hits: list[Hit], root: str) -> dict:
 
 def write_utf16(path: Path, text: str):
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(b"\xfe\xff" + text.encode("utf-16-be"))
+    path.write_bytes(b"\xfe\xff" + (text + "\n").encode("utf-16-be"))
 
 
 def parse_assign(spec: str) -> tuple[tuple[int, int, int, int | None], str]:
