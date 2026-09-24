@@ -24,7 +24,9 @@ for you (see below).
 - File names never use final letters (`כספ.json`, `סלמ.json`). A sin/shin dot is kept only to
   prevent a name clash (`שׂה.json`).
 
-The script handles all of this. **Don't write these files by hand.**
+The script handles all of this. **Don't write these files by hand**, and don't edit them in
+GitHub's web editor: it saves them as UTF-8, which the app can't read (that's how `אבב` and `שמח`
+broke in 2022). `scripts/audit_roots.py --encoding` lists any root file that isn't UTF-16 BE with a BOM.
 
 ## The script
 
