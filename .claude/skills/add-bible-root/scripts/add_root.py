@@ -20,6 +20,7 @@ Examples:
 import argparse
 import json
 import re
+import subprocess
 import sys
 import urllib.parse
 import urllib.request
@@ -444,6 +445,15 @@ def main():
         write_utf16(formatted, json.dumps(data, ensure_ascii=False, indent=2))
         write_utf16(minified, json.dumps(data, ensure_ascii=False, separators=(",", ":")))
         print(f"wrote {formatted.relative_to(repo)} and {minified.relative_to(repo)}")
+    update_index(repo)
+
+
+def update_index(repo: Path):
+    """Rewrite roots-index.json (the site's list of roots) with the Kotlin tool."""
+    result = subprocess.run([str(repo / "gradlew"), "-q", ":tools:run", "--args=index"], cwd=repo)
+    if result.returncode != 0:
+        print("warning: roots-index.json was NOT updated; run ./gradlew -q :tools:run --args=index",
+              file=sys.stderr)
 
 
 if __name__ == "__main__":

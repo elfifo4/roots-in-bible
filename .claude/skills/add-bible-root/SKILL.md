@@ -8,7 +8,10 @@ description: Add a new Hebrew root (שורש) to the roots-in-bible repo — fet
 Each root lives in two files, `formatted/<first letter>/<root>.json` (indent 2) and
 `minified/<first letter>/<root>.json` (compact). The Bible Contest app loads
 `https://raw.githubusercontent.com/elfifo4/roots-in-bible/master/minified/<letter>/<root>.json`
-for whatever the user types, so there is no list of roots to update: pushing the file is enough.
+for whatever the user types, so the app needs no list of roots. The GitHub Pages site
+(`index.html`) does: it reads `roots-index.json` (root → letter folder, total, diff_verses).
+**Every add, regenerate or fix of a root must update that index** — `add_root.py --write` does it
+for you (see below).
 
 ```json
 {"total":7,"root":"ספק","diff_verses":7,"list":[{"b":3,"c":24,"v":10,"w":[6]}, ...]}
@@ -54,7 +57,8 @@ What it does:
    - Anything it can't match is marked `NOT FOUND` and blocks writing.
 4. When more than one `--root` is given, it classifies each hit by the letters of the **app's**
    word. A root given with a sin/shin dot (e.g. `שׂפק`) only matches words with that dot.
-5. Prints a review table and the JSON for each root. With `--write` it writes the files.
+5. Prints a review table and the JSON for each root. With `--write` it writes the files and then
+   rewrites `roots-index.json` by running `./gradlew -q :tools:run --args=index` (Kotlin, in `tools/`).
 
 ## Workflow
 
@@ -76,10 +80,14 @@ What it does:
      spelling, which is the script's default)
    - words Dicta returns that don't belong to the root at all (Dicta does morphological search,
      so homographs slip in); drop them with `=-`
-4. Run it again with `--write`. Check the result with `git status`: two new files per root.
+4. Run it again with `--write`. Check the result with `git status`: two new files per root, and
+   `roots-index.json` changed. If the script warned that the index was not updated, run
+   `./gradlew -q :tools:run --args=index` yourself. Then run
+   `./gradlew -q :tools:run --args="check <root> ..."`: every verse must exist in `text/`, every
+   word index must be in range, and the root's line in the index must be current.
 5. Commit and push to `master` only if the user asked. The commit message follows the repo's
    style: `הוספת שורש ס-פ-ק` (for several roots: `הוספת שורשים ס-פ-ק, ש-פ-ק`). Stage only the
-   root files and the skill. `.idea/` changes are never part of it.
+   root files, `roots-index.json` and the skill. `.idea/` changes are never part of it.
 
 ## Auditing existing files
 
@@ -97,6 +105,9 @@ index changes and keep everything else in the file. The first full audit (2026-0
 98 such verses in 72 roots. They came from ketiv/qere, Ha'azinu's layout, the Ten Commandments'
 numbering, and ketiv joined by a makaf (`אֶת־החצי (הַחִצִּים)`).
 
+After changing any root file by hand or from an audit, run `./gradlew -q :tools:run --args=index`
+(total / diff_verses may have changed) and commit `roots-index.json` with it.
+
 ## Validation reference
 
 Regenerating existing roots with this script (אמר, דבר, ספר, שפט: about 9,600 hits) matched the
@@ -104,3 +115,20 @@ app's text for all but 3 hits (שמות כ:יז, ירמיהו לא:לה, תהי�
 differences that get flagged. Dicta returns more verses than some older files contain, because
 the older files were generated differently. So if you regenerate an existing root, diff the
 result against the old file and review the differences with the user before `--force`.
+
+## The site and `text/`
+
+`index.html` (GitHub Pages) shows a root's verses with its words highlighted. It loads
+`roots-index.json`, the root file, and `text/<b>.json` for each book the root appears in: an array
+of chapters, each an array of verse strings, exactly as the app shows them (ketiv replaced by
+qere, `{פ}`/`{ס}` removed, NBSP before a paseq). `text/` is exported from the app's `allChapters`
+and does not change when a root is added.
+
+Word numbering on the site, in `tools/` and in `AppText._words` is the same: split on whitespace
+(NBSP included) and makaf; a token with no Hebrew letter (a paseq, or the NBSP gap between the
+halves of a verse in תהילים/משלי/איוב) belongs to the previous word.
+
+`./gradlew -q :tools:run --args=check` checks all roots. Known problems as of 2026-09-24 (not
+fixed): the Ten Commandments (שמות כ, דברים ה) use a different verse division than the app's
+text; 4 off-by-one indexes (איוב יח:טו, זכריה יב:יא, ירמיהו נא:ג, שמואל א כד:ח); פצצ has
+total/diff_verses 4 for a list of 3; `שׂה` and `שׂק` hold the same list.

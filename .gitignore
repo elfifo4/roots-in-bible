@@ -2,3 +2,6 @@
 /.idea
 .idea/caches
 __pycache__/
+.gradle
+.kotlin
+/tools/build
