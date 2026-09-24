@@ -20,13 +20,14 @@ for you (see below).
 - `b`: 0-based book index in the app's order (בראשית=0 … דברי הימים ב=38). `c`/`v`: chapter and verse, 1-based.
   `w`: 1-based indexes of the words in the verse **as the app splits it**.
 - `total` is the total number of words (sum of all `w`). `diff_verses` is the number of verses.
-- Encoding is **UTF-16 BE with a BOM** and no trailing newline. Key order is total, root, diff_verses, list.
+- Encoding is **UTF-16 BE with a BOM**, and the file ends with a newline (`00 0a`). Key order is total, root, diff_verses, list.
 - File names never use final letters (`כספ.json`, `סלמ.json`). A sin/shin dot is kept only to
   prevent a name clash (`שׂה.json`).
 
 The script handles all of this. **Don't write these files by hand**, and don't edit them in
 GitHub's web editor: it saves them as UTF-8, which the app can't read (that's how `אבב` and `שמח`
-broke in 2022). `scripts/audit_roots.py --encoding` lists any root file that isn't UTF-16 BE with a BOM.
+broke in 2022). `scripts/audit_roots.py --encoding` lists any root file that isn't UTF-16 BE with a BOM
+or doesn't end with a newline.
 
 ## The script
 

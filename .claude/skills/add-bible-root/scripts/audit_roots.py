@@ -11,7 +11,7 @@ Report categories per root:
   error        Dicta request failed / returned nothing
 
 Every run also checks that each file in formatted/ and minified/ is UTF-16 BE with a BOM (the app
-decodes them only that way) and lists the files that aren't. --encoding runs only this check.
+decodes them only that way) and ends with a newline, and lists the files that don't. --encoding runs only this check.
 
 Examples:
   audit_roots.py --out <dir>              # all roots → <dir>/report.json
@@ -48,7 +48,8 @@ def load(path: Path) -> dict:
 
 
 def encoding_problems(repo: Path) -> list[str]:
-    """Root files that are not UTF-16 BE with a BOM (e.g. saved as UTF-8 by GitHub's web editor)."""
+    """Root files that are not UTF-16 BE with a BOM (e.g. saved as UTF-8 by GitHub's web editor)
+    or don't end with a newline."""
     problems = []
     for path in sorted([*repo.glob("formatted/*/*.json"), *repo.glob("minified/*/*.json")]):
         b = path.read_bytes()
@@ -59,9 +60,13 @@ def encoding_problems(repo: Path) -> list[str]:
             problems.append(f"{rel}: {kind}")
             continue
         try:
-            json.loads(b[2:].decode("utf-16-be"))
+            text = b[2:].decode("utf-16-be")
+            json.loads(text)
         except (UnicodeDecodeError, ValueError) as e:
             problems.append(f"{rel}: invalid UTF-16 BE JSON ({e})")
+            continue
+        if not text.endswith("\n"):
+            problems.append(f"{rel}: no trailing newline")
     return problems
 
 
@@ -141,7 +146,7 @@ def main():
     ap.add_argument("--apply", action="append", default=[],
                     help="rewrite files of these categories from the last report (e.g. index_fix)")
     ap.add_argument("--encoding", action="store_true",
-                    help="only check that every root file is UTF-16 BE with a BOM")
+                    help="only check that every root file is UTF-16 BE with a BOM and ends with a newline")
     args = ap.parse_args()
 
     repo = Path(args.repo)
@@ -149,7 +154,7 @@ def main():
     for line in bad_encoding:
         print(f"ENCODING {line}", file=sys.stderr)
     if args.encoding:
-        print(f"{len(bad_encoding)} file(s) not UTF-16 BE with BOM")
+        print(f"{len(bad_encoding)} file(s) not UTF-16 BE with BOM and a trailing newline")
         sys.exit(1 if bad_encoding else 0)
     if not args.out:
         ap.error("--out is required")
