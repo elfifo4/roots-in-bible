@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>שורשים בתנ״ך</title>
+    <meta name="description" content="כל המופעים של כל שורש בתנ״ך, עם הפסוקים המלאים והמילים של השורש מודגשות.">
+    <link rel="preload" href="fonts/Keter-Medium.ttf" as="font" type="font/ttf" crossorigin>
+    <style>
+        @font-face {
+            font-family: "Keter YG";
+            src: url("fonts/Keter-Medium.ttf") format("truetype");
+            font-display: swap;
+        }
+        :root {
+            --bg: #f7f4ee;
+            --surface: #fffdf9;
+            --ink: #2b2620;
+            --muted: #7a7064;
+            --line: #e4ddd1;
+            --accent: #8a5a1f;
+            --accent-soft: #f1e4cf;
+            --mark: #fbe7b5;
+            --chip: #f3eee5;
+            --focus: #b57a2c;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) {
+                --bg: #1a1714;
+                --surface: #231f1b;
+                --ink: #ece5da;
+                --muted: #a39887;
+                --line: #3a332c;
+                --accent: #e0b070;
+                --accent-soft: #3b2e1f;
+                --mark: #5a4318;
+                --chip: #2e2823;
+                --focus: #e0b070;
+            }
+        }
+        :root[data-theme="dark"] {
+            --bg: #1a1714;
+            --surface: #231f1b;
+            --ink: #ece5da;
+            --muted: #a39887;
+            --line: #3a332c;
+            --accent: #e0b070;
+            --accent-soft: #3b2e1f;
+            --mark: #5a4318;
+            --chip: #2e2823;
+            --focus: #e0b070;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--ink);
+            font-family: "Keter YG", serif;
+            line-height: 1.5;
+            font-size: 18px;
+        }
+        .wrap { max-width: 1080px; margin: 0 auto; padding: 32px 16px 64px; }
+
+        header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px; margin-bottom: 24px; }
+        h1 { font-size: clamp(34px, 6vw, 48px); margin: 0; font-weight: normal; }
+        .sub { color: var(--muted); margin: 4px 0 0; font-size: 19px; }
+        .links { display: flex; gap: 16px; font-size: 17px; }
+        a { color: var(--accent); }
+
+        .search { position: relative; max-width: 520px; }
+        .search input {
+            width: 100%;
+            font: inherit;
+            font-size: 24px;
+            color: var(--ink);
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 10px 16px;
+        }
+        .search input::placeholder { color: var(--muted); }
+        .search input:focus { outline: 2px solid var(--focus); outline-offset: 1px; }
+        .suggest {
+            position: absolute;
+            inset-inline: 0;
+            top: calc(100% + 4px);
+            z-index: 10;
+            margin: 0;
+            padding: 4px;
+            list-style: none;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        .suggest[hidden] { display: none; }
+        .suggest li {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 12px;
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 22px;
+        }
+        .suggest li span { color: var(--muted); font-size: 15px; }
+        .suggest li[aria-selected="true"], .suggest li:hover { background: var(--accent-soft); }
+        .suggest .none { color: var(--muted); cursor: default; font-size: 17px; }
+        .suggest .none:hover { background: none; }
+
+        .letters { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; }
+        .chip {
+            all: unset;
+            cursor: pointer;
+            min-width: 36px;
+            padding: 3px 10px;
+            border-radius: 999px;
+            background: var(--chip);
+            text-align: center;
+            font-size: 20px;
+        }
+        .chip sup { font-size: 12px; color: var(--muted); margin-inline-start: 3px; }
+        .chip:hover { color: var(--accent); }
+        .chip.active { background: var(--accent); color: var(--surface); }
+        .chip.active sup { color: var(--surface); }
+        .chip:disabled { opacity: 0.35; cursor: default; color: var(--ink); }
+        .chip:focus-visible, button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+        .letter-roots {
+            margin-top: 12px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 12px;
+        }
+        .letter-roots[hidden] { display: none; }
+        .letter-roots .roots { display: flex; flex-wrap: wrap; gap: 6px; }
+
+        #results { margin-top: 32px; scroll-margin-top: 16px; }
+        .results-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+        .results-head h2 { margin: 0; font-size: 34px; font-weight: normal; }
+        .results-head .count { color: var(--muted); font-size: 16px; }
+        .tools { display: flex; gap: 12px; align-items: center; font-size: 17px; }
+        .tools label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+        .books { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+        .books .chip { font-size: 17px; }
+
+        ol.verses { list-style: none; padding: 0; margin: 0; }
+        .verse { padding: 16px 0; border-bottom: 1px solid var(--line); }
+        .ref { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; margin-bottom: 6px; }
+        .ref strong { font-weight: normal; font-size: 19px; }
+        .note { font-size: 15px; background: var(--accent-soft); color: var(--accent); border-radius: 6px; padding: 1px 8px; }
+        .text { font-size: 25px; line-height: 1.9; margin: 0; }
+        .text b { font-weight: 700; background: var(--mark); border-radius: 4px; padding: 0 2px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+        .more { color: var(--muted); padding: 16px 0; text-align: center; }
+
+        .empty, .error { color: var(--muted); padding: 24px 0; }
+        footer { margin-top: 48px; color: var(--muted); font-size: 16px; }
+
+        @media (max-width: 520px) {
+            .search input { font-size: 22px; }
+            .chip { font-size: 19px; }
+            .letters { gap: 5px; }
+            .letters .chip { min-width: 30px; padding: 2px 6px; }
+            .books .chip { font-size: 16px; padding: 2px 8px; }
+            .text { font-size: 22px; }
+        }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <header>
+        <div>
+            <h1>שורשים בתנ״ך</h1>
+            <p class="sub" id="summary">טוען…</p>
+        </div>
+        <div class="links">
+            <a href="https://github.com/elfifo4/roots-in-bible">GitHub</a>
+            <a id="json-link" href="roots-index.json">JSON</a>
+        </div>
+    </header>
+
+    <div class="search">
+        <input id="q" type="search" placeholder="הקלידו שורש, למשל פקד" autocomplete="off" spellcheck="false"
+               role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="suggest" aria-label="חיפוש שורש">
+        <ul class="suggest" id="suggest" role="listbox" hidden></ul>
+    </div>
+
+    <nav class="letters" id="letters" aria-label="בחירה לפי אות"></nav>
+    <section class="letter-roots" id="letter-roots" hidden></section>
+
+    <section id="results" aria-live="polite"></section>
+
+    <footer>
+        המילים ממוספרות לפי הקרי. נמצאה טעות? <a href="https://github.com/elfifo4/roots-in-bible/issues">פתחו issue</a>.
+    </footer>
+</div>
+
+<script>
+    // Same order as the app ("b" is the 0-based index into this list).
+    const BOOKS = [
+        "בראשית", "שמות", "ויקרא", "במדבר", "דברים", "יהושע", "שופטים", "שמואל א", "שמואל ב",
+        "מלכים א", "מלכים ב", "ישעיהו", "ירמיהו", "יחזקאל", "הושע", "יואל", "עמוס", "עובדיה",
+        "יונה", "מיכה", "נחום", "חבקוק", "צפניה", "חגי", "זכריה", "מלאכי", "תהילים", "משלי",
+        "איוב", "שיר השירים", "רות", "איכה", "קהלת", "אסתר", "דניאל", "עזרא", "נחמיה",
+        "דברי הימים א", "דברי הימים ב",
+    ];
+    const LETTERS = [..."אבגדהוזחטיכלמנסעפצקרשת"];
+    const TEAMIM = /[֑-ֽ֯׀׃-׆]/g;
+    const NIKUD = /[ְ-ׇּֿׁׂ]/g;
+    const TOKEN = /[^\s־]+/g; // JS \s includes NBSP
+    const HEBREW_LETTER = /[א-ת]/;
+    const PAGE = 300;
+
+    let index = {};        // root file name → {letter, total, diff_verses}
+    let byKey = new Map(); // normalized key (no marks, no final letters) → [root names]
+    let names = [];
+    let current = null;    // {root, data}
+    let bookFilter = null;
+    let openLetter = null;
+    let shown = 0;
+    let observer = null;
+    const books = new Map(); // b → Promise<string[][]>
+    let showTeamim = true;
+    let showNikud = true;
+
+    try {
+        showTeamim = localStorage.getItem("teamim") !== "0";
+        showNikud = localStorage.getItem("nikud") !== "0";
+    } catch (e) { /* storage unavailable */ }
+
+    const fmt = n => n.toLocaleString("he-IL");
+
+    function escapeHtml(s) {
+        return s.replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+    }
+
+    /** Root names never use final letters (פקד, כספ); show the last letter in its final form. */
+    function display(root) {
+        const finals = {"כ": "ך", "מ": "ם", "נ": "ן", "פ": "ף", "צ": "ץ"};
+        return root.replace(/([כמנפצ])([ׁׂ]?)$/, (m, l, dot) => finals[l] + dot);
+    }
+
+    function normalize(s) {
+        return s.replace(/[^א-ת]/g, "").replace(/[ךםןףץ]/g, c => ({"ך": "כ", "ם": "מ", "ן": "נ", "ף": "פ", "ץ": "צ"}[c]));
+    }
+
+    function hebrewNumber(n) {
+        const ones = ["", "א", "ב", "ג", "ד", "ה", "ו", "ז", "ח", "ט"];
+        const tens = ["", "י", "כ", "ל", "מ", "נ", "ס", "ע", "פ", "צ"];
+        let s = n >= 100 ? "ק".repeat(Math.floor(n / 100)) : "";
+        const r = n % 100;
+        s += r === 15 ? "טו" : r === 16 ? "טז" : tens[Math.floor(r / 10)] + ones[r % 10];
+        return s.length === 1 ? s + "׳" : s.slice(0, -1) + "״" + s.slice(-1);
+    }
+
+    function fetchJson(url) {
+        return fetch(url).then(r => { if (!r.ok) throw new Error(`${url}: ${r.status}`); return r.arrayBuffer(); })
+            .then(buf => {
+                // The root files are UTF-16 BE with a BOM; a few are UTF-8.
+                const bytes = new Uint8Array(buf);
+                const utf16 = bytes[0] === 0xFE && bytes[1] === 0xFF;
+                return JSON.parse(new TextDecoder(utf16 ? "utf-16be" : "utf-8").decode(bytes));
+            });
+    }
+
+    function book(b) {
+        if (!books.has(b)) {
+            const p = fetchJson(`text/${b}.json`);
+            p.catch(() => books.delete(b));
+            books.set(b, p);
+        }
+        return books.get(b);
+    }
+
+    /**
+     * The verse's words as [start, end) ranges: runs of characters that are neither whitespace
+     * (NBSP included) nor a makaf, where a run with no Hebrew letter (a paseq, or the gap between
+     * the halves of a verse in the poetic books) belongs to the previous word. A paseq is
+     * highlighted with its word; a gap is not.
+     */
+    function words(verse) {
+        const out = [];
+        for (const m of verse.matchAll(TOKEN)) {
+            const range = [m.index, m.index + m[0].length];
+            if (HEBREW_LETTER.test(m[0]) || !out.length) out.push(range);
+            else if (m[0].includes("׀")) out[out.length - 1][1] = range[1];
+        }
+        return out;
+    }
+
+    function clean(t) {
+        if (!showTeamim) t = t.replace(TEAMIM, "");
+        if (!showNikud) t = t.replace(NIKUD, "");
+        return escapeHtml(t);
+    }
+
+    function verseHtml(verse, w) {
+        const ranges = words(verse);
+        const marked = w.filter(i => i >= 1 && i <= ranges.length).sort((a, b) => a - b).map(i => ranges[i - 1]);
+        let html = "", pos = 0;
+        for (const [start, end] of marked) {
+            html += clean(verse.slice(pos, start)) + "<b>" + clean(verse.slice(start, end)) + "</b>";
+            pos = end;
+        }
+        return html + clean(verse.slice(pos)) + "׃";
+    }
+
+    function renderLetters() {
+        const counts = {};
+        names.forEach(n => counts[index[n].letter] = (counts[index[n].letter] || 0) + 1);
+        const box = document.getElementById("letters");
+        box.innerHTML = "";
+        LETTERS.forEach(letter => {
+            const chip = document.createElement("button");
+            chip.className = "chip" + (openLetter === letter ? " active" : "");
+            chip.textContent = letter;
+            chip.disabled = !counts[letter];
+            chip.title = counts[letter] ? `${counts[letter]} שורשים` : "אין שורשים באות זו";
+            chip.setAttribute("aria-expanded", openLetter === letter);
+            chip.addEventListener("click", () => {
+                openLetter = openLetter === letter ? null : letter;
+                renderLetters();
+            });
+            box.appendChild(chip);
+        });
+
+        const panel = document.getElementById("letter-roots");
+        panel.hidden = !openLetter;
+        if (!openLetter) return;
+        const roots = names.filter(n => index[n].letter === openLetter);
+        panel.innerHTML = `<div class="roots">${roots.map(n => `
+            <button class="chip${current && current.root === n ? " active" : ""}" data-root="${escapeHtml(n)}"
+                    title="${fmt(index[n].total)} מופעים ב־${fmt(index[n].diff_verses)} פסוקים">${display(n)}<sup>${fmt(index[n].total)}</sup></button>`).join("")}
+        </div>`;
+        panel.querySelectorAll("[data-root]").forEach(chip => chip.addEventListener("click", () => go(chip.dataset.root)));
+    }
+
+    function suggestions(query) {
+        const key = normalize(query);
+        if (!key) return [];
+        const starts = names.filter(n => normalize(n).startsWith(key));
+        const contains = names.filter(n => !normalize(n).startsWith(key) && normalize(n).includes(key));
+        return [...starts, ...contains].slice(0, 12);
+    }
+
+    function setupSearch() {
+        const input = document.getElementById("q");
+        const list = document.getElementById("suggest");
+        let items = [];
+        let active = -1;
+
+        const close = () => { list.hidden = true; input.setAttribute("aria-expanded", "false"); active = -1; };
+        const paint = () => {
+            list.innerHTML = items.length
+                ? items.map((n, i) => `<li role="option" id="opt-${i}" data-root="${escapeHtml(n)}" aria-selected="${i === active}">
+                    ${display(n)}<span>${fmt(index[n].total)} מופעים</span></li>`).join("")
+                : `<li class="none">אין שורש כזה במאגר</li>`;
+            list.hidden = false;
+            input.setAttribute("aria-expanded", "true");
+            if (active >= 0) {
+                input.setAttribute("aria-activedescendant", `opt-${active}`);
+                list.children[active].scrollIntoView({block: "nearest"});
+            } else input.removeAttribute("aria-activedescendant");
+        };
+        const choose = root => { input.value = ""; close(); input.blur(); go(root); };
+
+        input.addEventListener("input", () => {
+            items = suggestions(input.value);
+            active = items.length ? 0 : -1;
+            if (input.value.trim()) paint(); else close();
+        });
+        input.addEventListener("keydown", e => {
+            if (list.hidden || !items.length) {
+                if (e.key === "Enter" && byKey.has(normalize(input.value))) choose(byKey.get(normalize(input.value))[0]);
+                return;
+            }
+            if (e.key === "ArrowDown") { active = (active + 1) % items.length; paint(); e.preventDefault(); }
+            else if (e.key === "ArrowUp") { active = (active - 1 + items.length) % items.length; paint(); e.preventDefault(); }
+            else if (e.key === "Enter") { choose(items[Math.max(active, 0)]); e.preventDefault(); }
+            else if (e.key === "Escape") close();
+        });
+        list.addEventListener("mousedown", e => {
+            const li = e.target.closest("[data-root]");
+            if (li) { e.preventDefault(); choose(li.dataset.root); }
+        });
+        input.addEventListener("blur", close);
+    }
+
+    function renderEmpty(message) {
+        document.getElementById("results").innerHTML = `<p class="empty">${message}</p>`;
+        document.getElementById("json-link").href = "roots-index.json";
+    }
+
+    function selectedList() {
+        const list = current.data.list;
+        return bookFilter === null ? list : list.filter(o => o.b === bookFilter);
+    }
+
+    async function renderRoot() {
+        const {root, data} = current;
+        const box = document.getElementById("results");
+        const perBook = new Map();
+        data.list.forEach(o => perBook.set(o.b, (perBook.get(o.b) || 0) + o.w.length));
+        const list = selectedList();
+
+        box.innerHTML = `
+            <div class="results-head">
+                <div>
+                    <h2>${display(root)}</h2>
+                    <span class="count">${fmt(data.total)} ${data.total === 1 ? "מופע" : "מופעים"} ב־${fmt(data.diff_verses)} ${data.diff_verses === 1 ? "פסוק" : "פסוקים"}</span>
+                </div>
+                <div class="tools">
+                    <label><input type="checkbox" id="nikud" ${showNikud ? "checked" : ""}> ניקוד</label>
+                    <label><input type="checkbox" id="teamim" ${showTeamim ? "checked" : ""}> טעמים</label>
+                </div>
+            </div>
+            ${perBook.size > 1 ? `<div class="books" aria-label="סינון לפי ספר">
+                <button class="chip${bookFilter === null ? " active" : ""}" data-book="">הכל</button>
+                ${[...perBook].map(([b, n]) => `<button class="chip${bookFilter === b ? " active" : ""}" data-book="${b}">${BOOKS[b]}<sup>${fmt(n)}</sup></button>`).join("")}
+            </div>` : ""}
+            <ol class="verses" id="verses"></ol>
+            <p class="more" id="more" hidden>טוען…</p>`;
+
+        box.querySelectorAll("[data-book]").forEach(chip => chip.addEventListener("click", () => {
+            bookFilter = chip.dataset.book === "" ? null : +chip.dataset.book;
+            renderRoot();
+        }));
+        const toggle = (id, set) => document.getElementById(id).addEventListener("change", e => {
+            set(e.target.checked);
+            try { localStorage.setItem(id, e.target.checked ? "1" : "0"); } catch (err) { /* ignore */ }
+            renderRoot();
+        });
+        toggle("nikud", v => showNikud = v);
+        toggle("teamim", v => showTeamim = v);
+
+        shown = 0;
+        await renderMore(list);
+    }
+
+    /** Appends the next page of verses; the rest load as the reader scrolls. */
+    async function renderMore(list) {
+        const token = current;
+        const more = document.getElementById("more");
+        if (observer) observer.disconnect();
+        const page = list.slice(shown, shown + PAGE);
+        more.hidden = false;
+        let texts;
+        try {
+            texts = await Promise.all([...new Set(page.map(o => o.b))].map(b => book(b).then(t => [b, t])));
+        } catch (e) {
+            if (token === current) more.textContent = "לא הצלחתי לטעון את טקסט הפסוקים.";
+            return;
+        }
+        if (token !== current || !document.getElementById("verses")) return;
+        const text = new Map(texts);
+        document.getElementById("verses").insertAdjacentHTML("beforeend", page.map(o => {
+            const verse = text.get(o.b)[o.c - 1]?.[o.v - 1];
+            const missing = verse === undefined;
+            const count = missing ? 0 : words(verse).length;
+            const outside = o.w.filter(i => i < 1 || i > count);
+            return `
+                <li class="verse">
+                    <div class="ref">
+                        <strong>${BOOKS[o.b]} ${hebrewNumber(o.c)}, ${hebrewNumber(o.v)}</strong>
+                        ${missing ? `<span class="note">הפסוק לא נמצא בטקסט</span>` : ""}
+                        ${!missing && outside.length ? `<span class="note">מספר מילה ${outside.join(", ")} מחוץ לפסוק</span>` : ""}
+                    </div>
+                    ${missing ? "" : `<p class="text">${verseHtml(verse, o.w)}</p>`}
+                </li>`;
+        }).join(""));
+        shown += page.length;
+        more.hidden = shown >= list.length;
+        if (!more.hidden) {
+            observer = new IntersectionObserver(entries => {
+                if (entries.some(e => e.isIntersecting)) renderMore(list);
+            }, {rootMargin: "800px"});
+            observer.observe(more);
+        }
+    }
+
+    function go(root) {
+        openLetter = null;
+        const hash = "#" + root;
+        if (decodeURIComponent(location.hash) === hash) route(true);
+        else location.hash = hash;
+    }
+
+    /** "#פקד", "#פקד" with a final letter or nikud, "#שה" for שׂה: any spelling that names one root. */
+    function resolve(hash) {
+        const raw = decodeURIComponent(hash.replace(/^#/, "")).trim();
+        if (!raw) return null;
+        if (index[raw]) return raw;
+        const exact = names.find(n => display(n) === raw);
+        if (exact) return exact;
+        const matches = byKey.get(normalize(raw)) || [];
+        return matches.length === 1 ? matches[0] : null;
+    }
+
+    async function route(scroll) {
+        const hash = location.hash;
+        const root = resolve(hash);
+        if (observer) observer.disconnect();
+        if (!root) {
+            current = null;
+            renderLetters();
+            renderEmpty(hash.length > 1
+                ? `השורש „${escapeHtml(decodeURIComponent(hash.slice(1)))}” לא נמצא במאגר.`
+                : "הקלידו שורש או בחרו אות כדי לראות את כל הפסוקים שבהם הוא מופיע.");
+            document.title = "שורשים בתנ״ך";
+            return;
+        }
+        const {letter} = index[root];
+        const url = `minified/${letter}/${root}.json`;
+        document.getElementById("json-link").href = url;
+        document.title = `${display(root)} · שורשים בתנ״ך`;
+        bookFilter = null;
+        const token = current = {root, data: null};
+        renderLetters();
+        document.getElementById("results").innerHTML = `<p class="empty">טוען את ${display(root)}…</p>`;
+        try {
+            const data = await fetchJson(url);
+            if (token !== current) return;
+            current.data = data;
+            await renderRoot();
+            if (scroll) document.getElementById("results").scrollIntoView({behavior: "smooth", block: "start"});
+        } catch (e) {
+            if (token === current) document.getElementById("results").innerHTML = `<p class="error">לא הצלחתי לטעון את השורש ${display(root)}.</p>`;
+        }
+    }
+
+    fetch("roots-index.json")
+        .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(json => {
+            index = json;
+            names = Object.keys(index).sort((a, b) => normalize(a).localeCompare(normalize(b), "he") || a.localeCompare(b));
+            names.forEach(n => {
+                const key = normalize(n);
+                byKey.set(key, [...(byKey.get(key) || []), n]);
+            });
+            const total = names.reduce((s, n) => s + index[n].total, 0);
+            document.getElementById("summary").textContent = `${fmt(names.length)} שורשים, ${fmt(total)} מופעים`;
+            setupSearch();
+            window.addEventListener("hashchange", () => route(true));
+            route(false);
+        })
+        .catch(() => {
+            document.getElementById("summary").textContent = "";
+            document.getElementById("results").innerHTML = `<p class="error">לא הצלחתי לטעון את רשימת השורשים.</p>`;
+        });
+</script>
+</body>
+</html>
