@@ -10,10 +10,14 @@ Report categories per root:
   unresolved   some Dicta hits could not be matched to the app text (listed)
   error        Dicta request failed / returned nothing
 
+Every run also checks that each file in formatted/ and minified/ is UTF-16 BE with a BOM (the app
+decodes them only that way) and lists the files that aren't. --encoding runs only this check.
+
 Examples:
   audit_roots.py --out <dir>              # all roots → <dir>/report.json
   audit_roots.py --out <dir> --only ספר --only שפט
   audit_roots.py --out <dir> --apply index_fix   # rewrite whole files of that category (review first!)
+  audit_roots.py --encoding                        # encoding check only (no Dicta), exit 1 on problems
 """
 
 import argparse
@@ -41,6 +45,24 @@ def rival_roots(root: str) -> list[str]:
 def load(path: Path) -> dict:
     b = path.read_bytes()
     return json.loads((b[2:].decode("utf-16-be") if b[:2] == b"\xfe\xff" else b.decode("utf-8-sig")))
+
+
+def encoding_problems(repo: Path) -> list[str]:
+    """Root files that are not UTF-16 BE with a BOM (e.g. saved as UTF-8 by GitHub's web editor)."""
+    problems = []
+    for path in sorted([*repo.glob("formatted/*/*.json"), *repo.glob("minified/*/*.json")]):
+        b = path.read_bytes()
+        rel = path.relative_to(repo)
+        if b[:2] != b"\xfe\xff":
+            kind = "UTF-8 with BOM" if b[:3] == b"\xef\xbb\xbf" else \
+                "UTF-16 LE" if b[:2] == b"\xff\xfe" else f"no UTF-16 BE BOM (starts {b[:4].hex(' ')})"
+            problems.append(f"{rel}: {kind}")
+            continue
+        try:
+            json.loads(b[2:].decode("utf-16-be"))
+        except (UnicodeDecodeError, ValueError) as e:
+            problems.append(f"{rel}: invalid UTF-16 BE JSON ({e})")
+    return problems
 
 
 def fetch_cached(query: str, cache: Path) -> str:
@@ -113,14 +135,26 @@ def main():
     ap.add_argument("--app-chapters",
                     default=str(Path(__file__).resolve().parents[5] / "BibleContestAndroidApp/shared/src/"
                                 "commonMain/moko-resources/assets/allChapters"))
-    ap.add_argument("--out", required=True, help="directory for the report and the Dicta cache")
+    ap.add_argument("--out", help="directory for the report and the Dicta cache (required unless --encoding)")
     ap.add_argument("--only", action="append", help="audit only these roots")
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--apply", action="append", default=[],
                     help="rewrite files of these categories from the last report (e.g. index_fix)")
+    ap.add_argument("--encoding", action="store_true",
+                    help="only check that every root file is UTF-16 BE with a BOM")
     args = ap.parse_args()
 
-    repo, out = Path(args.repo), Path(args.out)
+    repo = Path(args.repo)
+    bad_encoding = encoding_problems(repo)
+    for line in bad_encoding:
+        print(f"ENCODING {line}", file=sys.stderr)
+    if args.encoding:
+        print(f"{len(bad_encoding)} file(s) not UTF-16 BE with BOM")
+        sys.exit(1 if bad_encoding else 0)
+    if not args.out:
+        ap.error("--out is required")
+
+    out = Path(args.out)
     cache = out / "dicta"
     cache.mkdir(parents=True, exist_ok=True)
     report_file = out / "report.json"
@@ -154,6 +188,8 @@ def main():
     summary: dict[str, int] = {}
     for r in results:
         summary[r["category"]] = summary.get(r["category"], 0) + 1
+    if bad_encoding:
+        summary["bad_encoding_files"] = len(bad_encoding)
     print(json.dumps(summary, ensure_ascii=False))
     print(f"report: {report_file}")
 
