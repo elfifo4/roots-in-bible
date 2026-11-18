@@ -50,7 +50,7 @@ What it does:
    joins the word before it. For ketiv/qere, only the qere counts. Dicta hides divine names by
    replacing a letter with a makaf (`יְ־וָה`, `אֱ־ֹהִים`, `צְ־ָאוֹת`), and those stay one word.
 3. **Checks every hit against the app's own text**, the UTF-16 files in
-   `../BibleContestAndroidApp/shared/src/commonMain/moko-resources/assets/allChapters`
+   `../BibleContestMultiPlatformApp/shared/src/commonMain/moko-resources/assets/allChapters`
    (override the path with `--app-chapters`). Dicta uses a different edition:
    - Verse numbering sometimes differs. Dicta's ירמיהו לא:יט is the app's לא:יח. The script
      moves the hit and notes `moved from …`.

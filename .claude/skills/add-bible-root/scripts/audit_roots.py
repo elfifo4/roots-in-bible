@@ -138,7 +138,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--repo", default=str(Path(__file__).resolve().parents[4]))
     ap.add_argument("--app-chapters",
-                    default=str(Path(__file__).resolve().parents[5] / "BibleContestAndroidApp/shared/src/"
+                    default=str(Path(__file__).resolve().parents[5] / "BibleContestMultiPlatformApp/shared/src/"
                                 "commonMain/moko-resources/assets/allChapters"))
     ap.add_argument("--out", help="directory for the report and the Dicta cache (required unless --encoding)")
     ap.add_argument("--only", action="append", help="audit only these roots")

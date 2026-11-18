@@ -361,7 +361,7 @@ def main():
     ap.add_argument("--repo", default=str(Path(__file__).resolve().parents[4]),
                     help="roots-in-bible checkout (default: the repo this script lives in)")
     ap.add_argument("--app-chapters",
-                    default=str(Path(__file__).resolve().parents[5] / "BibleContestAndroidApp/shared/src/"
+                    default=str(Path(__file__).resolve().parents[5] / "BibleContestMultiPlatformApp/shared/src/"
                                 "commonMain/moko-resources/assets/allChapters"),
                     help="the app's allChapters assets, to check/fix every hit against the app text")
     ap.add_argument("--input", action="append", help="use saved Dicta TXT files instead of fetching")
